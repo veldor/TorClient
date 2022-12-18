@@ -35,9 +35,20 @@ android {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.1"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1"
-    implementation "junit:junit:4.13.2"
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.4'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == "lint") {
+        //this is for speed up build
+        task.enabled = false
+    }
+    if (task.name.contains("Test")) {
+        //this is what you need
+        task.enabled = false
+    }
 }
 
 
