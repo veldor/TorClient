@@ -4,20 +4,19 @@ plugins {
     id 'maven-publish'
 }
 
-group = 'net.veldor.TorClient'
-version = '0.0.1'
+group = 'net.veldor.tor_client'
+version = '0.0.3'
 
 android {
     namespace 'net.veldor.tor_client'
     compileSdk 33
+    compileSdkVersion 33
 
     defaultConfig {
         minSdk 7
         targetSdk 33
         versionCode 1
-        versionName "0.0.1"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionName "0.0.3"
     }
 
     buildTypes {
@@ -46,8 +45,8 @@ afterEvaluate {
             // Creates a Maven publication called "release".
             release(MavenPublication) {
                 from components.release
-                groupId = 'net.veldor.TorClient'
-                artifactId = 'TorClient'
+                groupId = 'net.veldor.tor_client'
+                artifactId = 'tor_client'
                 version = '0.0.1'
             }
         }
