@@ -1,7 +1,7 @@
 plugins {
     id 'com.android.library'
-    id 'kotlin-android'
     id 'maven-publish'
+    id 'org.jetbrains.kotlin.android'
 }
 
 group = 'net.veldor.tor_client'
@@ -35,9 +35,12 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.core:core-ktx:+'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+    implementation "cz.msebera.android:httpclient:4.5.8"
+    implementation 'org.jsoup:jsoup:1.13.1'
 }
 
 tasks.whenTaskAdded { task ->
@@ -60,7 +63,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'net.veldor.tor_client'
                 artifactId = 'tor_client'
-                version = '0.0.1'
+                version = '0.0.6'
             }
         }
     }
