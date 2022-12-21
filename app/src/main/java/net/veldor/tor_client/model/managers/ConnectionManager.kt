@@ -22,7 +22,15 @@ class ConnectionManager {
         val headersArray = HashMap<String, ArrayList<String>>()
         connection.headerFields.entries.forEach {
             if (it.key != null) {
-                headersArray[it.key] = it.value as ArrayList<String>
+                try {
+                    headersArray[it.key] = it.value as ArrayList<String>
+                } catch (e: ClassCastException) {
+                    val result = ArrayList<String>()
+                    it.value.forEach { headerValue ->
+                        result.add(headerValue)
+                    }
+                    headersArray[it.key] = result
+                }
             }
         }
         val response =
