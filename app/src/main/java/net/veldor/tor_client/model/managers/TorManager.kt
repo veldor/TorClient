@@ -78,13 +78,13 @@ class TorManager private constructor() {
 
     fun stop(context: Context): Boolean {
         if (mControlConnection != null) {
-            LaunchLogManager.instance.addToLog("Have TOR control connection")
+            LaunchLogManager.addToLog("Have TOR control connection")
             mControlConnection!!.setConf("DisableNetwork", "1")
             mControlConnection!!.shutdownTor("TERM")
             mControlSocket?.close()
             mControlConnection = null
             mBootstrapped = false
-            LaunchLogManager.instance.addToLog("TOR stopped via existent control connection")
+            LaunchLogManager.addToLog("TOR stopped via existent control connection")
             Log.d("surprise", "stop 140:  tor stopped")
         } else {
             try {
@@ -96,7 +96,7 @@ class TorManager private constructor() {
                     mControlSocket?.close()
                     mControlConnection = null
                     mBootstrapped = false
-                    LaunchLogManager.instance.addToLog("TOR stopped via new control connection")
+                    LaunchLogManager.addToLog("TOR stopped via new control connection")
                     Log.d("surprise", "stop 140:  tor stopped")
                 } else {
                     // try to stop with pid
@@ -135,7 +135,7 @@ class TorManager private constructor() {
             --countForStop
             Thread.sleep(1000)
         }
-        LaunchLogManager.instance.addToLog("Can't control connection for TOR")
+        LaunchLogManager.addToLog("Can't control connection for TOR")
         Log.d("surprise", "stop 143:  no control connection for stop TOR")
         return false
     }

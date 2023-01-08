@@ -23,7 +23,7 @@ class ProcessStarter {
                 var line = bufferedReader.readLine()
                 while (line != null) {
                     Log.d("surprise", "ProcessStarter.kt 25: line is $line")
-                    LaunchLogManager.instance.addToLog(line)
+                    LaunchLogManager.addToLog(line)
                     stdout.add(line)
                     if (line.contains("Address already in use")) {
                         throw TorAlreadyRanException(line)

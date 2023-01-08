@@ -260,11 +260,11 @@ public class TorControlConnection implements TorControlCommands {
 
     private void parseEvent(String tp, String rest) {
         if (!Objects.equals(tp, "CIRC")) {
-            LaunchLogManager.Companion.getInstance().addToLog("TOR load progress: " + rest);
+            LaunchLogManager.INSTANCE.addToLog("TOR load progress: " + rest);
             Log.d("tor_log", tp + " : " + rest);
         }
         if (rest.startsWith("Bootstrapped ")) {
-            LaunchLogManager.Companion.getInstance().addToLog("TOR load progress: " + rest);
+            LaunchLogManager.INSTANCE.addToLog("TOR load progress: " + rest);
             if (rest.equals("Bootstrapped 100% (done): Done")) {
                 TorManager.Companion.getInstance().torBootstrapped();
             }
