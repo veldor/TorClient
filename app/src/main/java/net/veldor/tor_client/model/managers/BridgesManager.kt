@@ -41,7 +41,7 @@ class BridgesManager {
                         bridgesInUse.clear()
                         val bridgeItems = bridgesText.split("\n")
                         bridgeItems.forEach {
-                            LaunchLogManager.instance.addToLog("Bridges add $it")
+                            LaunchLogManager.addToLog("Bridges add $it")
                             bridgesInUse.add(it)
                         }
                         if (bridgesInUse.isNotEmpty()) {
@@ -63,7 +63,7 @@ class BridgesManager {
                             saveConfigFile(context)
                             return true
                         } else {
-                            LaunchLogManager.instance.addToLog("Bridges not found in tg response")
+                            LaunchLogManager.addToLog("Bridges not found in tg response")
                             return false
                         }
                     }
@@ -228,7 +228,7 @@ class BridgesManager {
                     codeImage = BitmapFactory.decodeByteArray(data, 0, data.size)
                     imageFound = true
                     checkNotNull(codeImage) {
-                        LaunchLogManager.instance.addToLog("Get official captcha: Tor Project website error")
+                        LaunchLogManager.addToLog("Get official captcha: Tor Project website error")
                         "Tor Project web site error"
                     }
                 } else if (inputLine.contains("captcha_challenge_field") && inputLine.contains("value")) {
@@ -241,19 +241,19 @@ class BridgesManager {
                             captcha_challenge_field_value
                         )
                     } else {
-                        LaunchLogManager.instance.addToLog("Get official captcha: Tor Project website error")
+                        LaunchLogManager.addToLog("Get official captcha: Tor Project website error")
                         throw IllegalStateException("Tor Project website error")
                     }
                 }
             }
         }
-        LaunchLogManager.instance.addToLog("Get official captcha: Possible Tor Project website data scheme changed")
+        LaunchLogManager.addToLog("Get official captcha: Possible Tor Project website data scheme changed")
         throw CancellationException("Possible Tor Project website data scheme changed")
     }
 
 
     fun getOfficialBridges(parsedValue: String, secretCode: String, context: Context): Boolean {
-        LaunchLogManager.instance.addToLog("Send encoded captcha to TOR server")
+        LaunchLogManager.addToLog("Send encoded captcha to TOR server")
         val altLink = URL("https://bridges.torproject.org/bridges/?transport=obfs4")
         val data = linkedMapOf<String, String>().apply {
             put("captcha_challenge_field", secretCode)
@@ -372,7 +372,7 @@ class BridgesManager {
         bridgesInUse.clear()
         val bridgesArray = bridges.split("\n")
         bridgesArray.forEach {
-            Log.d("surprise", "saveCustomBridges 335:  here bridge " + it)
+            Log.d("surprise", "saveCustomBridges 335:  here bridge $it")
             var line = it
             if (line.isNotEmpty()) {
                 if (line.contains(BridgeType.snowflake.toString())) {
