@@ -6,7 +6,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class ConnectionManager {
-    fun directConnect(link: String): WebResponse {
+    fun directConnect(link: String, dropConnectionAfterResponse: Boolean = false): WebResponse {
         val url = URL(link)
         val connection = url.openConnection() as HttpURLConnection
         connection.apply {
@@ -46,6 +46,9 @@ class ConnectionManager {
                     connection.contentLength.toLong()
                 }
             )
+        if(dropConnectionAfterResponse){
+            connection.disconnect()
+        }
         return response
     }
 }

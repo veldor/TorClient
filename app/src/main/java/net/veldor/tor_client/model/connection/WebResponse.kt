@@ -8,5 +8,6 @@ class WebResponse(
     val contentType: String?,
     val headers: HashMap<String, ArrayList<String>>,
     val contentLength: Int = 0,
-    val longContentLength: Long = 0
+    val longContentLength: Long = 0,
+    val errorText: String? = null
 )

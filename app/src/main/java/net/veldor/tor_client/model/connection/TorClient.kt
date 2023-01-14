@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 
 class TorClient {
 
-    fun rawRequest(link: String): WebResponse {
+    fun rawRequest(link: String, dropConnectionAfterResponse: Boolean = false): WebResponse {
         val httpGet = HttpGet(link)
         httpGet.setHeader(
             "User-Agent",
@@ -31,6 +31,9 @@ class TorClient {
         val headersArray = HashMap<String, ArrayList<String>>()
         headers.forEach {
             headersArray[it.name] = arrayListOf(it.value)
+        }
+        if (dropConnectionAfterResponse) {
+            result.entity.content.close()
         }
         return WebResponse(
             result.statusLine.statusCode,
