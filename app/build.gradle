@@ -5,18 +5,19 @@ plugins {
 }
 
 group = 'net.veldor.tor_client'
-version = '0.0.13'
+version = '0.0.14'
 
 android {
     namespace 'net.veldor.tor_client'
     compileSdk 33
     compileSdkVersion 33
 
+
     defaultConfig {
-        minSdk 7
+        minSdk 11
         targetSdk 33
-        versionCode 11
-        versionName "0.0.13"
+        versionCode 12
+        versionName "0.0.14"
     }
 
     buildTypes {
@@ -60,7 +61,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'net.veldor.tor_client'
                 artifactId = 'tor_client'
-                version = '0.0.13'
+                version = '0.0.14'
             }
         }
     }
