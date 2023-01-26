@@ -192,8 +192,8 @@ class BridgesManager {
         val connection = altLink.openConnection() as HttpURLConnection
         connection.apply {
             requestMethod = "GET"
-            connectTimeout = 3000
-            readTimeout = 3000
+            connectTimeout = 30000
+            readTimeout = 30000
             setRequestProperty(
                 "User-Agent",
                 "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0"
@@ -273,8 +273,8 @@ class BridgesManager {
                     query.toByteArray().size.toString()
                 )
                 doOutput = true
-                connectTimeout = 5000
-                readTimeout = 5000
+                connectTimeout = 30000
+                readTimeout = 30000
             }.connect()
 
             connection.outputStream.bufferedWriter().use {
