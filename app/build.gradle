@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
     id 'org.jetbrains.kotlin.android'
 }
-def appVersion = '0.0.22'
+def appVersion = '0.0.23'
 group = 'net.veldor.tor_client'
 version = "${appVersion}"
 
@@ -16,9 +16,9 @@ android {
 
 
     defaultConfig {
-        minSdk 11
+        minSdk 21
         targetSdk 33
-        versionCode 22
+        versionCode 23
         versionName "${appVersion}"
     }
 
