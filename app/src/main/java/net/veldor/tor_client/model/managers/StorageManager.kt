@@ -36,25 +36,6 @@ class StorageManager {
         return lines
     }
 
-    fun cleanLogFileNoRootMethod(appDataDir: String, logFilePath: String, text: String) {
-        try {
-            val f = File("$appDataDir/logs")
-            if (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-                    f.mkdirs() && f.setReadable(true) && f.setWritable(true)
-                } else {
-                    f.mkdirs()
-                }
-            ) Log.i(
-                "surprise", "log dir created"
-            )
-            val writer = PrintWriter("$appDataDir/$logFilePath", "UTF-8")
-            writer.println(text)
-            writer.close()
-        } catch (e: IOException) {
-            Log.e("surprise", "Unable to create dnsCrypt log file " + e.message)
-        }
-    }
-
     fun editConfigurationFile(context: Context) {
         val appDataDir: String = context.applicationInfo.dataDir
         val currentConfiguration =
@@ -66,14 +47,13 @@ class StorageManager {
         writeToTextFile(
             context, "$appDataDir/app_data/tor/tor.conf", clearText
         )
+        BridgesManager(context).reloadTorConfigurationWithBridges(context)
     }
 
     fun writeToTextFile(context: Context?, filePath: String, lines: List<String?>) {
         val f = File(filePath)
         if (f.isFile) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-                f.canRead() && f.canWrite() || f.setReadable(true, false) && f.setWritable(true)
-            }
+            f.canRead() && f.canWrite() || f.setReadable(true, false) && f.setWritable(true)
         }
         PrintWriter(filePath).use { writer ->
             for (line in lines) {

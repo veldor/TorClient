@@ -3,17 +3,14 @@ package net.veldor.tor_client.model.managers
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.os.Build
 import android.util.Base64
 import android.util.Log
 import net.veldor.tor_client.model.bridges.BridgeType
 import net.veldor.tor_client.model.bridges.SnowflakeConfigurator
+import net.veldor.tor_client.model.control.AndroidOnionProxyContext
 import net.veldor.tor_client.model.exceptions.InvalidParsedCaptchaException
 import org.jsoup.Jsoup
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
+import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -21,10 +18,14 @@ import java.util.*
 import java.util.concurrent.CancellationException
 import javax.net.ssl.HttpsURLConnection
 
-class BridgesManager {
-    private var currentBridgesType: BridgeType? = null
-    private val bridgesInUse: ArrayList<String> = ArrayList()
+class BridgesManager(context: Context) {
+    private var bridgesFile: File = File("${context.applicationInfo.dataDir}/bridges/bridges.list")
     private val torConf: ArrayList<String> = ArrayList()
+
+    fun clearBridges(context: Context) {
+        saveBridgesToFile(context, arrayListOf())
+        reloadTorConfigurationWithBridges(context)
+    }
 
     fun loadTgBridges(context: Context): Boolean {
         val bridgesAnswer = ConnectionManager().directConnect("https://t.me/s/mosty_tor")
@@ -35,37 +36,10 @@ class BridgesManager {
                 val parsed = Jsoup.parse(bridges)
                 val codeElements = parsed.getElementsByTag("code")
                 if (codeElements.isNotEmpty()) {
-                    val bridgesText = codeElements.last().text().replace("obfs4", "\nobfs4")
-                    if (bridgesText.isNotEmpty()) {
-                        readTorConfiguration(context)
-                        bridgesInUse.clear()
-                        val bridgeItems = bridgesText.split("\n")
-                        bridgeItems.forEach {
-                            LaunchLogManager.addToLog("Bridges add $it")
-                            bridgesInUse.add(it)
-                        }
-                        if (bridgesInUse.isNotEmpty()) {
-                            val testBridge = bridgesInUse.toString()
-                            currentBridgesType =
-                                if (testBridge.contains(BridgeType.obfs4.toString())) {
-                                    BridgeType.obfs4
-                                } else if (testBridge.contains(BridgeType.obfs3.toString())) {
-                                    BridgeType.obfs3
-                                } else if (testBridge.contains(BridgeType.scramblesuit.toString())) {
-                                    BridgeType.scramblesuit
-                                } else if (testBridge.contains(BridgeType.meek_lite.toString())) {
-                                    BridgeType.meek_lite
-                                } else if (testBridge.contains(BridgeType.snowflake.toString())) {
-                                    BridgeType.snowflake
-                                } else {
-                                    BridgeType.vanilla
-                                }
-                            saveConfigFile(context)
-                            return true
-                        } else {
-                            LaunchLogManager.addToLog("Bridges not found in tg response")
-                            return false
-                        }
+                    val bridgesText = codeElements.last()?.text()?.replace("obfs4", "\nobfs4")
+                    if (bridgesText?.isNotEmpty() == true) {
+                        saveCustomBridges(context, bridgesText)
+                        return true
                     }
                 }
             }
@@ -73,118 +47,113 @@ class BridgesManager {
         return false
     }
 
-    fun readTorConfiguration(context: Context) {
-        torConf.clear()
-        bridgesInUse.clear()
+    fun reloadTorConfigurationWithBridges(context: Context){
         val appDataDir: String = context.applicationInfo.dataDir
+        // try to read file
+        val configFile = File("$appDataDir/app_data/tor/tor.conf")
+        if(!configFile.exists()){
+            // install files
+            val zipFileManager = ZipFileManager()
+            zipFileManager.extractZipFromInputStream(
+                context.assets.open("tor.mp3"),
+                context.applicationInfo.dataDir
+            )
+            // fix files paths
+            val currentConfiguration =
+                StorageManager().readTextFile("${context.applicationInfo.dataDir}/app_data/tor/tor.conf")
+            val clearText = ArrayList<String>(arrayListOf())
+            currentConfiguration.forEach {
+                clearText.add(it.replace("\$path", appDataDir))
+            }
+            StorageManager().writeToTextFile(
+                context, "$appDataDir/app_data/tor/tor.conf", clearText
+            )
+        }
+        val torConfCleaned = ArrayList<String>()
         val currentConfiguration =
             StorageManager().readTextFile("$appDataDir/app_data/tor/tor.conf")
         if (currentConfiguration.isNotEmpty()) {
             currentConfiguration.forEach {
-                var line = it
-                if (line.trim().isNotEmpty()) {
-                    torConf.add(line)
+                if ((it.contains("#") || (!it.contains("Bridge ") && !it.contains("ClientTransportPlugin ") && !it.contains(
+                        "UseBridges "
+                    ))) && it.isNotEmpty()
+                ) {
+                    torConfCleaned.add(it)
                 }
-                if (!line.contains("#") && line.contains("Bridge ")) {
-                    if (line.contains(BridgeType.snowflake.toString())) {
-                        line = line.replace("utls-imitate.+?( |\\z)".toRegex(), "")
-                    }
-                    bridgesInUse.add(line.replace("Bridge ", "").trim { it <= ' ' })
-                }
-                if (bridgesInUse.isNotEmpty()) {
-                    val testBridge = bridgesInUse.toString()
-                    if (testBridge.contains(BridgeType.obfs4.toString())) {
-                        currentBridgesType = BridgeType.obfs4
-                    } else if (testBridge.contains(BridgeType.obfs3.toString())) {
-                        currentBridgesType = BridgeType.obfs3
-                    } else if (testBridge.contains(BridgeType.scramblesuit.toString())) {
-                        currentBridgesType = BridgeType.scramblesuit
-                    } else if (testBridge.contains(BridgeType.meek_lite.toString())) {
-                        currentBridgesType = BridgeType.meek_lite
-                    } else if (testBridge.contains(BridgeType.snowflake.toString())) {
-                        currentBridgesType = BridgeType.snowflake
-                    } else {
-                        currentBridgesType = BridgeType.vanilla
-                    }
+            }
+
+            val bridgesInUse = getSavedBridges()
+
+            if (bridgesInUse.isNotEmpty()) {
+                torConfCleaned.add("UseBridges 1")
+                val stringBridges = bridgesInUse.joinToString(" ")
+                Log.d("surprise", "BridgesManager: 107 search type in $stringBridges")
+                val currentBridgesType = if (stringBridges.contains(BridgeType.obfs4.toString())) {
+                    BridgeType.obfs4
+                } else if (stringBridges.contains(BridgeType.obfs3.toString())) {
+                    BridgeType.obfs3
+                } else if (stringBridges.contains(BridgeType.scramblesuit.toString())) {
+                    BridgeType.scramblesuit
+                } else if (stringBridges.contains(BridgeType.meek_lite.toString())) {
+                    BridgeType.meek_lite
+                } else if (stringBridges.contains(BridgeType.snowflake.toString())) {
+                    BridgeType.snowflake
                 } else {
-                    currentBridgesType = BridgeType.undefined
+                    BridgeType.vanilla
                 }
-            }
-        }
-    }
-
-    private fun saveConfigFile(context: Context) {
-        val appDataDir: String = context.applicationInfo.dataDir
-        val torConfCleaned = ArrayList<String>()
-
-        for (i in torConf.indices) {
-            val line = torConf[i]
-            if ((line.contains("#") || (!line.contains("Bridge ") && !line.contains("ClientTransportPlugin ") && !line.contains(
-                    "UseBridges "
-                ))) && line.isNotEmpty()
-            ) {
-                torConfCleaned.add(line)
-            }
-        }
-
-        val currentBridgesTypeToSave: String = if (currentBridgesType == BridgeType.vanilla) {
-            ""
-        } else {
-            currentBridgesType.toString()
-        }
-
-        if (bridgesInUse.isNotEmpty() && currentBridgesType!! != BridgeType.undefined) {
-            torConfCleaned.add("UseBridges 1")
-            if (currentBridgesType!! != BridgeType.vanilla) {
-                val clientTransportPlugin: String =
-                    if (currentBridgesType!! == BridgeType.snowflake) {
-                        SnowflakeConfigurator(context).getConfiguration()
-                    } else {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-                            ("ClientTransportPlugin " + currentBridgesTypeToSave + " exec " + context.applicationInfo.nativeLibraryDir + "/libobfs4proxy.so")
+                Log.d("surprise", "BridgesManager: 119 $currentBridgesType")
+                if (currentBridgesType != BridgeType.vanilla) {
+                    val clientTransportPlugin: String =
+                        if (currentBridgesType == BridgeType.snowflake) {
+                            SnowflakeConfigurator(context).getConfiguration()
                         } else {
-                            TODO("VERSION.SDK_INT < GINGERBREAD")
+                            ("ClientTransportPlugin " + currentBridgesType + " exec " + context.applicationInfo.nativeLibraryDir + "/libobfs4proxy.so")
                         }
-                    }
-                torConfCleaned.add(clientTransportPlugin)
-            }
-            for (currentBridge in bridgesInUse) {
-                if (currentBridgesType === BridgeType.vanilla) {
-                    if (currentBridge.isNotEmpty() && !currentBridge.contains(BridgeType.obfs4.toString()) && !currentBridge.contains(
-                            BridgeType.obfs3.toString()
-                        ) && !currentBridge.contains(
-                            BridgeType.scramblesuit.toString()
-                        ) && !currentBridge.contains(BridgeType.meek_lite.toString()) && !currentBridge.contains(
-                            BridgeType.snowflake.toString()
-                        )
-                    ) {
-                        torConfCleaned.add("Bridge $currentBridge")
-                    }
-                } else {
-                    if (currentBridge.isNotEmpty() && currentBridge.contains(currentBridgesType.toString())) {
-                        if (currentBridgesType!! == BridgeType.snowflake) {
-                            torConfCleaned.add(
-                                "Bridge " + currentBridge + " utls-imitate=" + SnowflakeConfigurator(
-                                    context
-                                ).getUtlsClientID()
+                    torConfCleaned.add(clientTransportPlugin)
+                }
+                for (currentBridge in bridgesInUse) {
+                    if (currentBridgesType === BridgeType.vanilla) {
+                        if (currentBridge.isNotEmpty() && !currentBridge.contains(BridgeType.obfs4.toString()) && !currentBridge.contains(
+                                BridgeType.obfs3.toString()
+                            ) && !currentBridge.contains(
+                                BridgeType.scramblesuit.toString()
+                            ) && !currentBridge.contains(BridgeType.meek_lite.toString()) && !currentBridge.contains(
+                                BridgeType.snowflake.toString()
                             )
-                        } else {
+                        ) {
                             torConfCleaned.add("Bridge $currentBridge")
                         }
+                    } else {
+                        if (currentBridge.isNotEmpty() && currentBridge.contains(currentBridgesType.toString())) {
+                            if (currentBridgesType == BridgeType.snowflake) {
+                                torConfCleaned.add(
+                                    "Bridge " + currentBridge + " utls-imitate=" + SnowflakeConfigurator(
+                                        context
+                                    ).getUtlsClientID()
+                                )
+                            } else {
+                                torConfCleaned.add("Bridge $currentBridge")
+                            }
+                        }
                     }
                 }
+            } else {
+                torConfCleaned.add("UseBridges 0")
             }
-        } else {
-            torConfCleaned.add("UseBridges 0")
-        }
 
-        if (torConfCleaned.size == torConf.size && torConfCleaned.containsAll(torConf)) {
-            return
-        }
+            if (torConfCleaned.size == torConf.size && torConfCleaned.containsAll(torConf)) {
+                Log.d("surprise", "BridgesManager: 189 exit without saving")
+                return
+            }
 
-        StorageManager().writeToTextFile(
-            context, "$appDataDir/app_data/tor/tor.conf", torConfCleaned
-        )
+            torConfCleaned.forEach {
+                Log.d("surprise", "BridgesManager: 191 working conf item $it")
+            }
+
+            StorageManager().writeToTextFile(
+                context, "$appDataDir/app_data/tor/tor.conf", torConfCleaned
+            )
+        }
     }
 
     fun requestOfficialBridgesCaptcha(): Pair<Bitmap?, String?> {
@@ -208,7 +177,7 @@ class BridgesManager {
     fun parseCaptchaImage(inputStream: InputStream?): Pair<Bitmap?, String?> {
         BufferedReader(InputStreamReader(inputStream)).use { bufferedReader ->
             var codeImage: Bitmap? = null
-            val captcha_challenge_field_value: String
+            val captchaChallengeFieldValue: String
             var inputLine: String
             var imageFound = false
             while (bufferedReader.readLine().also { inputLine = it } != null
@@ -220,11 +189,7 @@ class BridgesManager {
                             .toTypedArray()
                     check(imgCodeBase64.size >= 4) { "Tor Project web site error" }
                     val data =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
-                            Base64.decode(imgCodeBase64[3], Base64.DEFAULT)
-                        } else {
-                            TODO("VERSION.SDK_INT < FROYO")
-                        }
+                        Base64.decode(imgCodeBase64[3], Base64.DEFAULT)
                     codeImage = BitmapFactory.decodeByteArray(data, 0, data.size)
                     imageFound = true
                     checkNotNull(codeImage) {
@@ -235,10 +200,10 @@ class BridgesManager {
                     val secretCodeArr =
                         inputLine.split("\"".toRegex()).toTypedArray()
                     return if (secretCodeArr.size > 5) {
-                        captcha_challenge_field_value = secretCodeArr[5]
+                        captchaChallengeFieldValue = secretCodeArr[5]
                         Pair(
                             codeImage,
-                            captcha_challenge_field_value
+                            captchaChallengeFieldValue
                         )
                     } else {
                         LaunchLogManager.addToLog("Get official captcha: Tor Project website error")
@@ -297,8 +262,7 @@ class BridgesManager {
 
     private fun parseAnswer(inputStream: InputStream?, context: Context): Boolean {
         BufferedReader(InputStreamReader(inputStream)).use { bufferedReader ->
-            var codeImage: Bitmap? = null
-            val captcha_challenge_field_value: String
+            var codeImage: Bitmap?
             var inputLine: String
             var keyWordBridge = false
             var wrongImageCode = false
@@ -329,14 +293,11 @@ class BridgesManager {
                             inputLine.replace("data:image/jpeg;base64,", "").split("\"".toRegex())
                                 .toTypedArray()
                         check(imgCodeBase64.size >= 4) { "Tor Project web site error" }
-                        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+                        val data =
                             Base64.decode(
                                 imgCodeBase64[3],
                                 Base64.DEFAULT
                             )
-                        } else {
-                            TODO("VERSION.SDK_INT < FROYO")
-                        }
                         codeImage = BitmapFactory.decodeByteArray(data, 0, data.size)
                         imageFound = true
                         checkNotNull(codeImage) { "Tor Project web site error" }
@@ -365,15 +326,11 @@ class BridgesManager {
     }
 
 
-
     fun saveCustomBridges(context: Context, bridges: String) {
-        Log.d("surprise", "saveCustomBridges 330:  saving bridges $bridges")
-        readTorConfiguration(context)
-        bridgesInUse.clear()
         val bridgesArray = bridges.split("\n")
-        bridgesArray.forEach {
-            Log.d("surprise", "saveCustomBridges 335:  here bridge $it")
-            var line = it
+        val bridgesInUse: ArrayList<String> = arrayListOf()
+        bridgesArray.forEach { bridge ->
+            var line = bridge
             if (line.isNotEmpty()) {
                 if (line.contains(BridgeType.snowflake.toString())) {
                     line = line.replace("utls-imitate.+?( |\\z)".toRegex(), "")
@@ -381,30 +338,25 @@ class BridgesManager {
                 bridgesInUse.add(line.replace("Bridge ", "").trim { it <= ' ' })
             }
         }
-        Log.d("surprise", "saveCustomBridges 344:  $bridgesInUse")
-        if (bridgesInUse.isNotEmpty()) {
-            val testBridge = bridgesInUse.toString()
-            if (testBridge.contains(BridgeType.obfs4.toString())) {
-                currentBridgesType = BridgeType.obfs4
-            } else if (testBridge.contains(BridgeType.obfs3.toString())) {
-                currentBridgesType = BridgeType.obfs3
-            } else if (testBridge.contains(BridgeType.scramblesuit.toString())) {
-                currentBridgesType = BridgeType.scramblesuit
-            } else if (testBridge.contains(BridgeType.meek_lite.toString())) {
-                currentBridgesType = BridgeType.meek_lite
-            } else if (testBridge.contains(BridgeType.snowflake.toString())) {
-                currentBridgesType = BridgeType.snowflake
-            } else {
-                currentBridgesType = BridgeType.vanilla
-            }
-            saveConfigFile(context)
-        } else {
-            currentBridgesType = BridgeType.undefined
-        }
+        saveBridgesToFile(context, bridgesInUse)
+        // delete existent configuration
+        AndroidOnionProxyContext(context).deleteAllFilesButHiddenServices()
+        reloadTorConfigurationWithBridges(context)
     }
 
     companion object {
         var TOR_BROWSER_USER_AGENT =
             "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0"
+    }
+
+    private fun saveBridgesToFile(context: Context, bridges: ArrayList<String>) {
+        if (bridgesFile.parentFile?.exists() != true) {
+            bridgesFile.parentFile?.mkdirs()
+        }
+        StorageManager().writeToTextFile(context, bridgesFile.absolutePath, bridges)
+    }
+
+    fun getSavedBridges(): List<String> {
+        return StorageManager().readTextFile(bridgesFile.path)
     }
 }

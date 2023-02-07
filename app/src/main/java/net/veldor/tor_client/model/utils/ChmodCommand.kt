@@ -1,7 +1,6 @@
 package net.veldor.tor_client.model.utils
 
 import android.annotation.SuppressLint
-import android.os.Build
 import java.io.File
 
 internal object ChmodCommand {
@@ -9,13 +8,11 @@ internal object ChmodCommand {
     fun dirChmod(path: String, executableDir: Boolean) {
         val dir = File(path)
         check(dir.isDirectory) { "dirChmod dir not exist or not dir $path" }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            check(
-                !(!dir.setReadable(true, false)
-                        || !dir.setWritable(true)
-                        || !dir.setExecutable(true, false))
-            ) { "DirChmod chmod dir fault $path" }
-        }
+        check(
+            !(!dir.setReadable(true, false)
+                    || !dir.setWritable(true)
+                    || !dir.setExecutable(true, false))
+        ) { "DirChmod chmod dir fault $path" }
         val files = dir.listFiles() ?: return
         for (file in files) {
             if (file.isDirectory) {
@@ -34,24 +31,20 @@ internal object ChmodCommand {
     private fun executableFileChmod(path: String) {
         val executable = File(path)
         check(executable.isFile) { "executableFileChmod file not exist or not file $path" }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            check(
-                !(!executable.setReadable(true, false)
-                        || !executable.setWritable(true)
-                        || !executable.setExecutable(true, false))
-            ) { "executableFileChmod chmod file fault $path" }
-        }
+        check(
+            !(!executable.setReadable(true, false)
+                    || !executable.setWritable(true)
+                    || !executable.setExecutable(true, false))
+        ) { "executableFileChmod chmod file fault $path" }
     }
 
     @SuppressLint("SetWorldReadable")
     private fun regularFileChmod(path: String) {
         val file = File(path)
         check(file.isFile) { "regularFileChmod file not exist or not file $path" }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            check(
-                !(!file.setReadable(true, false)
-                        || !file.setWritable(true))
-            ) { "regularFileChmod chmod file fault $path" }
-        }
+        check(
+            !(!file.setReadable(true, false)
+                    || !file.setWritable(true))
+        ) { "regularFileChmod chmod file fault $path" }
     }
 }

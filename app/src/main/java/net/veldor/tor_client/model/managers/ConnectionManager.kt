@@ -20,7 +20,9 @@ class ConnectionManager {
             connect()
         }
         val headersArray = HashMap<String, ArrayList<String>>()
-        connection.headerFields.entries.forEach {
+        connection.
+        headerFields?.
+        entries?.forEach {
             if (it.key != null) {
                 try {
                     headersArray[it.key] = it.value as ArrayList<String>

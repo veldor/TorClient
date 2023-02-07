@@ -1,6 +1,5 @@
 package net.veldor.tor_client.model.connection
 
-import android.util.Log
 import cz.msebera.android.httpclient.client.HttpClient
 import cz.msebera.android.httpclient.client.config.RequestConfig
 import cz.msebera.android.httpclient.client.methods.HttpGet
@@ -11,6 +10,7 @@ import cz.msebera.android.httpclient.conn.socket.ConnectionSocketFactory
 import cz.msebera.android.httpclient.impl.client.HttpClients
 import cz.msebera.android.httpclient.impl.conn.PoolingHttpClientConnectionManager
 import cz.msebera.android.httpclient.ssl.SSLContexts
+import net.veldor.tor_client.model.control.AndroidOnionProxyManager
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.UnknownHostException

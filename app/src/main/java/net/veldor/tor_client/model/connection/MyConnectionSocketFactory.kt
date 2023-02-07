@@ -1,6 +1,5 @@
 package net.veldor.tor_client.model.connection
 
-import android.util.Log
 import cz.msebera.android.httpclient.HttpHost
 import cz.msebera.android.httpclient.conn.socket.ConnectionSocketFactory
 import cz.msebera.android.httpclient.protocol.HttpContext
@@ -25,7 +24,6 @@ class MyConnectionSocketFactory : ConnectionSocketFactory {
         localAddress: InetSocketAddress?,
         context: HttpContext
     ): Socket {
-        Log.d("surprise", "connectSocket: create connection to ${host.hostName}")
         val socksaddr = context.getAttribute("socks.address") as InetSocketAddress
         val socket = Socket()
         val connectTimeout = 100000

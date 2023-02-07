@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
  */
-
 /*
 Copyright (c) Microsoft Open Technologies, Inc.
 All Rights Reserved
@@ -26,24 +25,20 @@ MERCHANTABLITY OR NON-INFRINGEMENT.
 
 See the Apache 2 License for the specific language governing permissions and limitations under the License.
 */
+package net.veldor.tor_client.model.tor_utils
 
-package net.veldor.tor_client.model.tor_utils;
-
-
-import android.os.Build;
-
-import java.util.Iterator;
-import java.util.List;
+import android.util.Log
 
 /**
  * Logs the data we get from notifications from the Tor OP. This is really just meant for debugging.
  */
-public class OnionProxyManagerEventHandler implements EventHandler {
-    private String lastLog = "";
+class OnionProxyManagerEventHandler : EventHandler {
+    var lastLog: String = ""
+        private set
 
-    public String getLastLog() {
-        return lastLog;
-    }
+
+    var lastBootstrapLog: String = ""
+        private set
 
     /*
         public void circuitStatus(String status, String id, List<String> path, Map<String, String> info) {
@@ -57,65 +52,53 @@ public class OnionProxyManagerEventHandler implements EventHandler {
             if(!path.isEmpty()) msg += ", path: " + shortenPath(path);
             LOG.info(msg);
         }*/
-    public void circuitStatus(String status, String circID, String path) {
-        String msg = "CircuitStatus: " + circID + " " + status;
-        //String purpose = info.get("PURPOSE");
-        //if(purpose != null) msg += ", purpose: " + purpose;
-        //String hsState = info.get("HS_STATE");
-        //if(hsState != null) msg += ", state: " + hsState;
-        //String rendQuery = info.get("REND_QUERY");
-        //if(rendQuery != null) msg += ", service: " + rendQuery;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-            if (!path.isEmpty()) msg += ", path: " + shortenPath(path);
-        }
-        lastLog = msg;
+    override fun circuitStatus(status: String?, circID: String?, path: String?) {
+        var msg = "CircuitStatus: $circID $status"
+            //Log.d("tor", "OnionProxyManagerEventHandler: 53 $msg")
+        if (path!!.isNotEmpty()) msg += ", path: " + shortenPath(path)
+        lastLog = msg
     }
 
-    public void streamStatus(String status, String id, String target) {
+    override fun streamStatus(status: String?, id: String?, target: String?) {
         //LOG.info("streamStatus: status: " + status + ", id: " + id + ", target: " + target);
     }
 
-    public void orConnStatus(String status, String orName) {
+    override fun orConnStatus(status: String?, orName: String?) {
         //LOG.info("OR connection: status: " + status + ", orName: " + orName);
     }
 
-    public void bandwidthUsed(long read, long written) {
+    override fun bandwidthUsed(read: Long, written: Long) {
         //LOG.info("bandwidthUsed: read: " + read + ", written: " + written);
     }
 
-    public void newDescriptors(List<String> orList) {
-        Iterator<String> iterator = orList.iterator();
-        StringBuilder stringBuilder = new StringBuilder();
+    override fun newDescriptors(orList: List<String?>?) {
+        val iterator = orList!!.iterator()
+        val stringBuilder = StringBuilder()
         while (iterator.hasNext()) {
-            stringBuilder.append(iterator.next());
+            stringBuilder.append(iterator.next())
         }
         //LOG.info("newDescriptors: " + stringBuilder.toString());
     }
 
-    public void message(String severity, String msg) {
+    override fun message(severity: String?, msg: String) {
         //LOG.info("message: severity: " + severity + ", msg: " + msg);
-        lastLog = msg;
-    }
-
-    public void unrecognized(String type, String msg) {
-        //LOG.info("unrecognized: type: " + type + ", msg: " + msg);
-        lastLog = msg;
-    }
-
-    private String shortenPath(List<String> path) {
-        StringBuilder s = new StringBuilder();
-        for (String id : path) {
-            if (s.length() > 0) s.append(',');
-            s.append(id.substring(1, 7));
+        if(msg.contains("Bootstrapped")){
+            lastBootstrapLog = msg
         }
-        return s.toString();
+        if(severity == "NOTICE"){
+            lastLog = msg
+        }
     }
 
-    private String shortenPath(String id) {
-        StringBuilder s = new StringBuilder();
-        if (s.length() > 0) s.append(',');
-        s.append(id.substring(1, 7));
-        return s.toString();
+    override fun unrecognized(type: String?, msg: String) {
+        //LOG.info("unrecognized: type: " + type + ", msg: " + msg);
+        lastLog = msg
     }
 
+    private fun shortenPath(id: String?): String {
+        val s = StringBuilder()
+        if (s.isNotEmpty()) s.append(',')
+        s.append(id!!.substring(1, 7))
+        return s.toString()
+    }
 }
