@@ -4,10 +4,8 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-def appVersion = '0.0.22'
-
 group = 'net.veldor.tor_client'
-version = "${appVersion}"
+version = '0.0.25'
 
 android {
     namespace 'net.veldor.tor_client'
@@ -20,8 +18,8 @@ android {
     defaultConfig {
         minSdk 11
         targetSdk 33
-        versionCode 22
-        versionName "${appVersion}"
+        versionCode 25
+        versionName "0.0.25"
     }
 
     buildTypes {
@@ -65,7 +63,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'net.veldor.tor_client'
                 artifactId = 'tor_client'
-                version = "${appVersion}"
+                version = '0.0.25'
             }
         }
     }
