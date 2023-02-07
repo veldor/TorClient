@@ -3,7 +3,9 @@ plugins {
     id 'maven-publish'
     id 'org.jetbrains.kotlin.android'
 }
-def appVersion = '0.0.23'
+
+def appVersion = '0.0.22'
+
 group = 'net.veldor.tor_client'
 version = "${appVersion}"
 
@@ -16,9 +18,9 @@ android {
 
 
     defaultConfig {
-        minSdk 21
+        minSdk 11
         targetSdk 33
-        versionCode 23
+        versionCode 22
         versionName "${appVersion}"
     }
 
@@ -40,10 +42,7 @@ android {
 dependencies {
     testImplementation 'junit:junit:4.13.2'
     implementation "cz.msebera.android:httpclient:4.5.8"
-    implementation 'org.jsoup:jsoup:1.15.3'
-    implementation 'org.slf4j:slf4j-api:2.0.6'
-
-
+    implementation 'org.jsoup:jsoup:1.13.1'
 }
 
 tasks.whenTaskAdded { task ->
